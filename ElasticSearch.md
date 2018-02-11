@@ -1,5 +1,5 @@
-#Exploit for Elastic Search
-##Version 1.1.1, 
+# Exploit for Elastic Search
+## Version 1.1.1, 
 CVE ID is 2014-3120 https://www.cvedetails.com/cve/CVE-2014-3120/
 
 The vulnerability allows the attacker to execute arbitrary java commands with the privileges of the service. 
