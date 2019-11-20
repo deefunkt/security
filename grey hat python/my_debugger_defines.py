@@ -187,7 +187,7 @@ class FLOATING_SAVE_AREA(Structure):
 
 # The 32 bit CONTEXT structure which holds all of the 
 # register values after a GetThreadContext() call
-class WOW64CONTEXT(Structure):
+class WOW64_CONTEXT(Structure):
     _fields_ = [
         ("ContextFlags", DWORD),
         ("Dr0", DWORD),

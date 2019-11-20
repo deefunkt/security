@@ -13,6 +13,8 @@ class debugger():
         self.h_process = None
         self.pid = None
         self.debugger_active = False
+        self.h_thread = None
+        self.context = None
 
     def load(self, path_to_exe):
         # dwCreation flag determines how to create the process
@@ -20,9 +22,7 @@ class debugger():
         # to see the calculator GUI
         creation_flags = DEBUG_PROCESS
     
-        # instantiate the structs
         startupinfo = STARTUPINFO()
-        # returned process information stored here
         process_information = PROCESS_INFORMATION()
     
         # The following two options allow the started process
@@ -33,7 +33,7 @@ class debugger():
         startupinfo.wShowWindow = 0x0
 
         # We then initialize the cb variable in the STARTUPINFO struct
-        # which is just the size of the struct itself
+        # Process info stored in struct
         startupinfo.cb = sizeof(startupinfo)
         if kernel32.CreateProcessW(path_to_exe,
                                     None,
@@ -80,8 +80,9 @@ class debugger():
         debug_event = DEBUG_EVENT()
         continue_status = DBG_CONTINUE
         if kernel32.WaitForDebugEvent(byref(debug_event), INFINITE):
-            # We aren't going to build any event handlers
-            # just yet. Let's just resume the process for now.
+            self.h_thread = self.open_thread(debug_event.dwThreadId)
+            self.context = self.get_thread_context(self.h_thread)
+            print("Event Code: {},    Thread ID: {}".format(debug_event.dwDebugEventCode, debug_event.dwThreadId))
             kernel32.ContinueDebugEvent(debug_event.dwProcessId,
                                         debug_event.dwThreadId,
                                         continue_status )
@@ -162,6 +163,28 @@ class debugger():
             return context
         else:
             return None
+
+    def dump_thread_context(self, thread_context):
+            if thread_context is not None:
+                # Now let's output the contents of some of the registers
+                print("[*] Dumping registers for thread ID: ", thread)
+                print("Return (RAX): {}".format(thread_context.Rax))
+                print('First 4 integer, pointer args:')
+                print("RCX: {},    RDX: {},    R8: {},    R9: {}".format(
+                    thread_context.Rcx,
+                    thread_context.Rdx,
+                    thread_context.R8,
+                    thread_context.R9))           
+                print("Base Pointer (RBP): {} Stack Pointer (RSP): {}".format(thread_context.Rbp, thread_context.Rsp)) 
+                print('Source Index (RSI): {}, Dest Index (RDI): {}'.format(thread_context.Rdi,thread_context.Rsi))
+                print("RBX: {}".format(thread_context.Rbx))
+                print("R10: {}, R13: {}".format(thread_context.R10, thread_context.R13))
+                print("R11: {}, R14: {}".format(thread_context.R11, thread_context.R14)) 
+                print("R12: {}, R15: {}".format(thread_context.R12, thread_context.R15)) 
+                print("[**] ".format()) 
+                print("[**] ".format()) 
+                print("[**] ".format())
+                print("[*] END DUMP")
 
 
 
