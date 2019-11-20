@@ -1,17 +1,21 @@
 from ctypes import *
 
 # Let's map the Microsoft types to ctypes for clarity
-BYTE      = c_ubyte
-WORD      = c_ushort
-DWORD     = c_ulong
-DWORD64   = c_ulonglong
-LPBYTE    = POINTER(c_ubyte)
-LPTSTR    = POINTER(c_char) 
-HANDLE    = c_void_p
-PVOID     = c_void_p
-LPVOID    = c_void_p
-UINT_PTR  = c_ulong
-SIZE_T    = c_ulong
+BYTE = c_ubyte
+CHAR = c_char
+LONG = c_long
+WORD = c_ushort
+DWORD = c_ulong
+ULONG = DWORD
+DWORD64 = c_ulonglong
+ULONG_PTR = c_ulonglong
+LPBYTE = POINTER(c_ubyte)
+LPTSTR = POINTER(c_char) 
+HANDLE = c_void_p
+PVOID = c_void_p
+LPVOID = c_void_p
+UINT_PTR = c_ulong
+SIZE_T = c_ulong
 
 # Constants
 DEBUG_PROCESS         = 0x00000001
@@ -19,6 +23,7 @@ CREATE_NEW_CONSOLE    = 0x00000010
 PROCESS_ALL_ACCESS    = 0x001F0FFF
 INFINITE              = 0xFFFFFFFF
 DBG_CONTINUE          = 0x00010002
+MAX_PATH = 260
 
 
 # Debug event constants
@@ -211,7 +216,6 @@ class WOW64CONTEXT(Structure):
 
 # THREADENTRY32 contains information about a thread
 # we use this for enumerating all of the system threads
-
 class THREADENTRY32(Structure):
     _fields_ = [
         ("dwSize",             DWORD),
@@ -221,6 +225,20 @@ class THREADENTRY32(Structure):
         ("tpBasePri",          DWORD),
         ("tpDeltaPri",         DWORD),
         ("dwFlags",            DWORD),
+    ]
+
+class PROCESSENTRY32(Structure):
+    _fields_ = [
+        ('dwSize', DWORD),
+        ('cntUsage', DWORD),
+        ('th32ProcessID', DWORD),
+        ('th32DefaultHeapID', ULONG_PTR),
+        ('th32ModuleID', DWORD),
+        ('cntThreads', DWORD),
+        ('th32ParentProcessID', DWORD),
+        ('pcPriClassBase', LONG),
+        ('dwFlags', DWORD),
+        ('szExeFile', CHAR*MAX_PATH),
     ]
 
 # Supporting struct for the SYSTEM_INFO_UNION union

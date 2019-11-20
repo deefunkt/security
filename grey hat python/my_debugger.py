@@ -85,6 +85,7 @@ class debugger():
             kernel32.ContinueDebugEvent(debug_event.dwProcessId,
                                         debug_event.dwThreadId,
                                         continue_status )
+
     def detach(self):
         if kernel32.DebugActiveProcessStop(self.pid):
             print("[*] Finished debugging. Exiting...")
@@ -108,22 +109,46 @@ class debugger():
     def enumerate_threads(self):
         thread_entry = THREADENTRY32()
         thread_list = []
-        snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD,
+        thread_snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD,
                                                      self.pid)
-        if snapshot is not None:
+        if thread_snapshot is not None:
             # You have to set the size of the struct
             # or the call will fail
             thread_entry.dwSize = sizeof(thread_entry)
-            success = kernel32.Thread32First(snapshot,
+            # goto top of struct containing snapshot
+            success = kernel32.Thread32First(thread_snapshot,
                                              byref(thread_entry))
             while success:
                 # enumerate all threads belonging to process
                 if thread_entry.th32OwnerProcessID == self.pid:
                     thread_list.append(thread_entry.th32ThreadID)
-                success = kernel32.Thread32Next(snapshot,
+                success = kernel32.Thread32Next(thread_snapshot,
                                                 byref(thread_entry))
-            kernel32.CloseHandle(snapshot)
+            kernel32.CloseHandle(thread_snapshot)
             return thread_list
+        else:
+            return False
+
+    def enumerate_processes(self):
+        process_entry = PROCESSENTRY32()
+        process_list = []
+        process_snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,
+                                                     self.pid)
+        if process_snapshot is not None:
+            # You have to set the size of the struct
+            # or the call will fail
+            process_entry.dwSize = sizeof(process_entry)
+            # goto top of struct containing snapshot
+            success = kernel32.Process32First(process_snapshot,
+                                             byref(process_entry))
+            while success:
+                # enumerate all threads belonging to process
+                if process_entry.th32OwnerProcessID == self.pid:
+                    process_list.append(process_entry.th32ThreadID)
+                success = kernel32.Process32Next(process_snapshot,
+                                                byref(process_entry))
+            kernel32.CloseHandle(process_snapshot)
+            return process_list
         else:
             return False
 
@@ -136,7 +161,7 @@ class debugger():
             kernel32.CloseHandle(h_thread)
             return context
         else:
-            return False
+            return None
 
 
 
