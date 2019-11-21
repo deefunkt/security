@@ -291,12 +291,15 @@ class MEMORY_BASIC_INFORMATION(Structure):
 ####################################################
 #####  Below are definitions for 64 bit processors
 ####################################################
+
+# Support structure for CONTEXT Structure
 class M128A(Structure):
     _fields_ = [
         ("Low", DWORD64),
         ("High", DWORD64)
     ] 
 
+# Support structure for CONTEXT Structure
 class XMM_SAVE_AREA32(Structure):
     _pack_ = 1 
     _fields_ = [  
@@ -318,6 +321,7 @@ class XMM_SAVE_AREA32(Structure):
         ('Reserved4', BYTE * 96)
     ]
 
+# Support structure for CONTEXT Structure
 class DUMMYSTRUCTNAME(Structure):
     _fields_ = [
         ('Header', M128A*2),
@@ -339,6 +343,8 @@ class DUMMYSTRUCTNAME(Structure):
         ('Xmm14', M128A),
         ('Xmm15', M128A),
     ]
+
+# Support structure for CONTEXT Structure
 class DUMMYUNIONNAME(Union):
             _fields_ = [
                 ('FltSave', XMM_SAVE_AREA32),
@@ -346,6 +352,7 @@ class DUMMYUNIONNAME(Union):
                 ('D', ULONGLONG*32),
                 ('S', DWORD*32),
             ]
+
 # The 64 bit CONTEXT structure which holds all of the 
 # register values after a GetThreadContext() call
 class CONTEXT(Structure):
