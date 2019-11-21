@@ -25,6 +25,8 @@ CREATE_NEW_CONSOLE    = 0x00000010
 PROCESS_ALL_ACCESS    = 0x001F0FFF
 INFINITE              = 0xFFFFFFFF
 DBG_CONTINUE          = 0x00010002
+DBG_EXCEPTION_NOT_HANDLED = 0x80010001
+DBG_REPLY_LATER       = 0x40010001
 MAX_PATH = 260
 
 
@@ -190,15 +192,18 @@ class FLOATING_SAVE_AREA(Structure):
 class WOW64_CONTEXT(Structure):
     _fields_ = [
         ("ContextFlags", DWORD),
+        # DR0-DR3 store a linear address of a breakpoint
         ("Dr0", DWORD),
         ("Dr1", DWORD),
         ("Dr2", DWORD),
         ("Dr3", DWORD),
-        ("Dr6", DWORD),
-        ("Dr7", DWORD),
+        # DR4 - Reserved. Not defined by Intel.
+        # DR5 - Reserved. Not defined by Intel.
+        ("Dr6", DWORD), # indicates which breakpoint is active
+        ("Dr7", DWORD), # defines breakpoint activation conditions
         ("FloatSave", FLOATING_SAVE_AREA),
         ("SegGs", DWORD),
-        ("SegFs", DWORD),
+        ("SegFs", DWORD), # TIB, contains pointer to PEB and SEH chain
         ("SegEs", DWORD),
         ("SegDs", DWORD),
         ("Edi", DWORD),
@@ -369,15 +374,18 @@ class CONTEXT(Structure):
         ('SegDs', WORD),
         ('SegEs', WORD),
         ('SegFs', WORD),
-        ('SegGs', WORD),
+        ('SegGs', WORD), # TIB, contains pointer to PEB and SEH chain
         ('SegSs', WORD),
         ('EFlags', DWORD),
+        # DR0-DR3 store a linear address of a breakpoint
         ('Dr0', DWORD64),
         ('Dr1', DWORD64),
         ('Dr2', DWORD64),
         ('Dr3', DWORD64),
-        ('Dr6', DWORD64),
-        ('Dr7', DWORD64),
+        # DR4 - Reserved. Not defined by Intel.
+        # DR5 - Reserved. Not defined by Intel.
+        ('Dr6', DWORD64), # indicates which breakpoint is active
+        ('Dr7', DWORD64), # defines breakpoint activation conditions
         ('Rax', DWORD64),
         ('Rcx', DWORD64),
         ('Rdx', DWORD64),
