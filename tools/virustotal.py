@@ -81,16 +81,16 @@ class VirusTotalScanner:
     
     def getIPReport(self, ip_address):
         '''This method takes in a IPv4 address and returns two lists.
-        The first shows malicious hostnames associated with the IP address, and has the format:
-        ```python
+The first shows malicious hostnames associated with the IP address, and has the format:
+    ```python
         [element i] = "Resolved: [URL associated with IP address]
                     detected by [some fraction] of engines"
-        ```
-        The second contains hashes for malicious files that have previously been correlated with the IP address.
-        ```python
+    ```
+    The second contains hashes for malicious files that have previously been correlated with the IP address.
+    ```python
         [element i] = "Associated file: [sha256 hash]
                     detected by [some fraction] of engines"
-        ```
+    ```
         '''
         result = 0
         malicious_files = 0
