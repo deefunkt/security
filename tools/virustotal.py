@@ -8,13 +8,13 @@ Created on Wed Apr 18 10:04:03 2018
 
 import requests
 
-'''
-This class contains methods for interacting with the VirusTotal public API.
+
+class VirusTotalScanner:
+    '''This class contains methods for interacting with the VirusTotal public API.
  - Urls can be checked against the database, and submitted for scanning.
  - IP addresses can be submitted, and associated bad hostnames and file hashes previously identified by
      virustotal are returned as a measure of threat.
 '''
-class VirusTotalScanner:
     def __init__(self, key = ''):
         self.key = key
         self.url = 'https://www.virustotal.com/vtapi/v2'
@@ -112,8 +112,9 @@ class VirusTotalScanner:
                           for detection in response['detected_urls']]
         return result, malicious_files
 
-# Test Cases for VirusTotalScanner
-vtscanner = VirusTotalScanner()
-# 'result' contains a list of engines and malware identifications.
-result = vtscanner.getUrlReport('http://www.faceboak.net')
-result, bad_files = vtscanner.getIPReport('90.156.201.27')
+if __name__ == '__main__':
+    # Test Cases for VirusTotalScanner
+    vtscanner = VirusTotalScanner()
+    # 'result' contains a list of engines and malware identifications.
+    result = vtscanner.getUrlReport('http://www.faceboak.net')
+    result, bad_files = vtscanner.getIPReport('90.156.201.27')
