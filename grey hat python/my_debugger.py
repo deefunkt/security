@@ -9,7 +9,12 @@ from my_debugger_defines import *
 
 kernel32 = windll.kernel32
 class debugger():
+    '''This class implements the logic for the debugger object, to be called from
+    other modules.
+    '''
     def __init__(self):
+        '''Intializes default object attributes
+        '''
         self.h_process = None
         self.pid = None
         self.debugger_active = False
@@ -22,7 +27,25 @@ class debugger():
         self.first_breakpoints = True
         self.hardware_breakpoints = {}
 
+    def print_system_error(self):
+        '''Calls GetLastError and then formats the error message for display
+        '''
+        dwFlags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS
+        message = create_unicode_buffer(256)
+        error = kernel32.GetLastError()
+        kernel32.FormatMessageW(dwFlags,
+                                None,
+                                error,
+                                0,
+                                message,
+                                sizeof(message), None
+                                )
+        print("Error {}: {}".format(error, message.value))
+
+
     def load(self, path_to_exe):
+        '''Creates a given process as a new child of the debugger
+        '''
         # dwCreation flag determines how to create the process
         # set creation_flags = CREATE_NEW_CONSOLE if you want
         # to see the calculator GUI
@@ -57,28 +80,23 @@ class debugger():
             # Obtain and store the process handle
             self.h_process = self.open_process(process_information.dwProcessId)
         else:
-            print(f"[*] Error: {kernel32.GetLastError()}")
-
-    def release_handle(self, handle = None, all = False):
-        if handle is None:
-          if all:
-              kernel32.CloseHandle(self.h_process)
-              kernel32.CloseHandle(self.h_thread)
-        elif kernel32.CloseHandle(handle):
-            print("Error closing handle")
+            print(f"[*] Error: {kernel32.GetLastError()}")            
 
     def attach(self, pid):
+        '''Attaches the debugger to an already running process
+        '''
         self.h_process = self.open_process(pid)
         # We attempt to attach to the process
         # if this fails we exit the call
         if kernel32.DebugActiveProcess(pid):
             self.debugger_active = True
             self.pid = int(pid)
-            self.run()
         else:
             print("[*] Unable to attach to the process.")
     
     def detach(self):
+        '''Detaches the debugger from a debugged process and releases all opened handles
+        '''
         if kernel32.DebugActiveProcessStop(self.pid):
             print("[*] Finished debugging. Exiting...")
             self.release_handle(all=True)
@@ -87,18 +105,35 @@ class debugger():
             print("There was an error.")
             return False
     
+    def release_handle(self, handle = None, all = False):
+        '''Releases specified handle or all handles using CloseHandle 
+        '''
+        res = 0
+        if all:
+            res = kernel32.CloseHandle(self.h_process)
+            res += kernel32.CloseHandle(self.h_thread)
+        if handle is not None:
+            res = kernel32.CloseHandle(handle)
+        if res > 0:
+            print("Error closing handle")    
+    
     def run(self):
+        '''Runs the debugger and gets debug events
+        '''
         # Now we poll debuggee for debugging events
         while self.debugger_active:
             self.get_debug_event()
 
     def get_debug_event(self):
+        '''Processes debug events for access Violations, memory, hardware and regular breakpoints
+        and calls the relevant handlers.
+        '''
         debug_event = DEBUG_EVENT()
         continue_status = DBG_CONTINUE
         if kernel32.WaitForDebugEvent(byref(debug_event), INFINITE):
             self.open_thread(debug_event.dwThreadId)
-            self.context = self.get_thread_context(self.h_thread)
-            print("Event Code: {},    Thread ID: {}".format(debug_event.dwDebugEventCode, debug_event.dwThreadId))
+            self.context = self.get_thread_context(debug_event.dwThreadId, h_thread=self.h_thread)
+            # print("Event Code: {},    Thread ID: {}".format(debug_event.dwDebugEventCode, debug_event.dwThreadId))
             if debug_event.dwDebugEventCode == EXCEPTION_DEBUG_EVENT:
                 self.exception = debug_event.u.Exception.ExceptionRecord.ExceptionCode
                 self.exception_address = debug_event.u.Exception.ExceptionRecord.ExceptionAddress
@@ -117,11 +152,15 @@ class debugger():
                                         continue_status )
 
     def exception_handler_breakpoint(self):
+        '''The handler for soft breakpoints
+        '''
         print('[*] Inside the breakpoint handler')
         print('Exception Address: ', self.exception_address)
         return DBG_CONTINUE
 
     def exception_handler_single_step(self):
+        '''The handler for hardware breakpoints. Deletes the breakpoint after processing.
+        '''
         slot = None
         for i in range(4):
             # check to see which hardware breakpoint fired if any
@@ -135,6 +174,8 @@ class debugger():
         return continue_status
         
     def bp_del_hw(self, slot):
+        '''Deletes and disables hardware breakpoints for all active threads in debuggee
+        '''
         # disable the breakpoint for all active threads
         for thread in self.thread_list:
             self.open_thread(thread)
@@ -153,6 +194,8 @@ class debugger():
             kernel32.SetThreadContext(self.h_thread, byref(context))
 
     def enumerate_threads(self):
+        '''Enumerates threads belonging to debuggee using a Toolhelp32 snapshot across the system
+        '''
         thread_entry = THREADENTRY32()
         self.thread_list = []
         thread_snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD,
@@ -176,6 +219,8 @@ class debugger():
             return False
     
     def open_thread(self, thread_id):
+        '''Opens a given thread
+        '''
         h_thread = kernel32.OpenThread(THREAD_ALL_ACCESS,
                                        None,
                                        thread_id)
@@ -187,6 +232,8 @@ class debugger():
             return False
     
     def get_thread_context(self, thread_id, h_thread = None, close_handle = True):
+        '''Returns a CONTEXT structure belonging to a thread.
+        '''
         context = CONTEXT()
         context.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS
         # Obtain a handle to the thread
@@ -201,34 +248,38 @@ class debugger():
             return None
 
     def dump_thread_context(self, thread_context, thread_id, verbose=False):
-            if thread_context is not None:
-                # Now let's output the contents of some of the registers
-                print("[*] Dumping registers for thread ID: ", thread_id)
-                print("Return (RAX): {}".format(thread_context.Rax))
-                print('First 4 integer, pointer args:')
-                print("RCX: {},    RDX: {},    R8: {},    R9: {}".format(
-                    thread_context.Rcx,
-                    thread_context.Rdx,
-                    thread_context.R8,
-                    thread_context.R9))           
-                print("Base Pointer (RBP): {} Stack Pointer (RSP): {}".format(thread_context.Rbp, thread_context.Rsp)) 
-                print('Source Index (RSI): {}, Dest Index (RDI): {}'.format(thread_context.Rdi,thread_context.Rsi))
-                if verbose:
-                    print("RBX: {}".format(thread_context.Rbx))
-                    print("R10: {}, R13: {}".format(thread_context.R10, thread_context.R13))
-                    print("R11: {}, R14: {}".format(thread_context.R11, thread_context.R14)) 
-                    print("R12: {}, R15: {}".format(thread_context.R12, thread_context.R15)) 
-                    print("[**] Code Segment (CS): {}".format(thread_context.SegCs)) 
-                    print("[**] Data Segment (DS): {}".format(thread_context.SegDs)) 
-                    print("[**] Stack Segment (SS): {}".format(thread_context.SegSs))
-                    print("[**] Extra Segment (ES): {}".format(thread_context.SegEs))
-                    # FS contains the Thread Information Block on x86
-                    print("[**] FS: {}".format(thread_context.SegFs))
-                    # GS contains the Thread Information Block on x64
-                    print("[**] GS: {}".format(thread_context.SegGs))
-                print("[*] END DUMP")
+        '''Pretty prints important registers from a CONTEXT structure
+        '''
+        if thread_context is not None:
+            # Now let's output the contents of some of the registers
+            print("[*] Dumping registers for thread ID: ", thread_id)
+            print("Return (RAX): {}".format(thread_context.Rax))
+            print('First 4 integer, pointer args:')
+            print("RCX: {},    RDX: {},    R8: {},    R9: {}".format(
+                thread_context.Rcx,
+                thread_context.Rdx,
+                thread_context.R8,
+                thread_context.R9))           
+            print("Base Pointer (RBP): {} Stack Pointer (RSP): {}".format(thread_context.Rbp, thread_context.Rsp)) 
+            print('Source Index (RSI): {}, Dest Index (RDI): {}'.format(thread_context.Rdi,thread_context.Rsi))
+            if verbose:
+                print("RBX: {}".format(thread_context.Rbx))
+                print("R10: {}, R13: {}".format(thread_context.R10, thread_context.R13))
+                print("R11: {}, R14: {}".format(thread_context.R11, thread_context.R14)) 
+                print("R12: {}, R15: {}".format(thread_context.R12, thread_context.R15)) 
+                print("[**] Code Segment (CS): {}".format(thread_context.SegCs)) 
+                print("[**] Data Segment (DS): {}".format(thread_context.SegDs)) 
+                print("[**] Stack Segment (SS): {}".format(thread_context.SegSs))
+                print("[**] Extra Segment (ES): {}".format(thread_context.SegEs))
+                # FS contains the Thread Information Block on x86
+                print("[**] FS: {}".format(thread_context.SegFs))
+                # GS contains the Thread Information Block on x64
+                print("[**] GS: {}".format(thread_context.SegGs))
+            print("[*] END DUMP")
     
     def enumerate_processes(self):
+        '''Enumerates running processes on a system through a Toolhelp32 snapshot.
+        '''
         process_entry = PROCESSENTRY32()
         process_list = []
         process_snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,
@@ -252,9 +303,13 @@ class debugger():
             return False
     
     def open_process(self, pid):
+        '''Opens a process with a given PID.
+        '''
         return kernel32.OpenProcess(PROCESS_ALL_ACCESS, pid, False)
 
     def read_process_memory(self, address, length):
+        '''Reads a process' memory for a given buffer length.
+        '''
         data = ''
         read_buffer = create_string_buffer(length)
         count = c_ulong(0)
@@ -270,6 +325,8 @@ class debugger():
             return data
     
     def write_process_memory(self, address, data):
+        '''Writes a process' memory with specified data.
+        '''
         count = c_ulong(0)
         length = len(data)
         c_data = c_char_p(data[count.value:])
@@ -284,12 +341,23 @@ class debugger():
             return True
 
     def get_function_address(self, dll, function):
-        handle = kernel32.GetModuleHandle(dll)
-        address = kernel32.GetProcAddress(handle, function)
+        '''Resolves the address for a specified function in a specified module.
+        '''
+        kernel32.GetModuleHandleW.restype = c_void_p
+        kernel32.GetProcAddress.argtypes = [c_void_p, c_char_p]
+        kernel32.GetProcAddress.restype = c_void_p
+        kernel32.CloseHandle.argtypes = [c_void_p]
+        
+        handle = kernel32.GetModuleHandleW(dll)
+        address = kernel32.GetProcAddress(handle, function.encode(encoding='ascii'))
+        if address == 0:
+            self.print_system_error()
         self.release_handle(handle)
         return address
 
     def bp_set(self, address):
+        '''Sets a soft breakpoint at a given address.
+        '''
         if address not in self.breakpoints:
             try:
                 # store original instruction byte and write INT3 opcode
@@ -304,6 +372,8 @@ class debugger():
         return True
 
     def bp_set_hw(self, address, length, condition):
+        '''Sets a hardware breakpoint at a given address.
+        '''
         # checking valid length value
         if length not in (1, 2, 4):
             print('Invalid hardware breakpoint length')
