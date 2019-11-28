@@ -17,4 +17,4 @@ with open('README.md', 'w+') as readme:
     readme.write(INTRO) 
     for name, type in inspect.getmembers(my_debugger.debugger):
         if not name.startswith('__'):
-            readme.write(f'- {name} - {inspect.getdoc(type)}\n')
+            readme.write(f'- **{name}** - {inspect.getdoc(type)}\n')
