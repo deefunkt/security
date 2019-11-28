@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Wed Apr 18 14:04:03 2018
+
+@author: deefunkt
+"""
 
 from email.parser import Parser
 from hashlib import sha256
@@ -8,7 +13,7 @@ import time
 import glob
 
 
-path = 'C:\\Users\\sharmay\\Downloads\\'
+path = 'C:\\Users\\A-Sha\\Downloads\\'
 messages = glob.glob(path + 'original_msg*')
 
 
@@ -16,10 +21,12 @@ messages = glob.glob(path + 'original_msg*')
 class EmailParser:
     '''This class defines a way to interact with a raw email stored on disk, and parses
     it for:
+
         - IP addresses related with the delivery of the message, excluding known
             'good' addresses such as prod.outlook.com, and protection.outlook.com
         - Attachments and embedded files, their filenames, and sha256 hash values
         - URLs embedded in the email
+
     These artefacts are to be queried against OSINT sources eg. VirusTotal, urlscan.io
     for known malicious activity.
     '''

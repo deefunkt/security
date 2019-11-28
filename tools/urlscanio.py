@@ -2,7 +2,7 @@
 """
 Created on Mon Apr 16 11:23:21 2018
 
-@author: sharmay
+@author: deefunkt
 
 This file contains an interface to urlscan.io
 """
@@ -15,7 +15,9 @@ import time
 
 class UrlScanner:
     '''This class contains methods for querying urls against urlscan.io.
+
     Typical uses:
+    ```python
         scanner = urlScanner()
         submission = scanner.submitUrl(url="http://www.google.com")
         result, isMalicious = scanner.scanResult(scanid = submission["api"])
@@ -24,6 +26,7 @@ class UrlScanner:
     You can also supply a list of urls, and will obtain a list of results (dicts) and malicious (list)
         submissions = scanner.submitBulk(urls)
         results, malicious = scanner.scanBulk(submissions)
+    ```
     '''
     def __init__(self, key=""):
         # api key built in to use key by default

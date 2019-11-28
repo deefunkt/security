@@ -2,7 +2,7 @@
 """
 Created on Wed Apr 18 10:04:03 2018
 
-@author: sharmay
+@author: deefunkt
 
 """
 
@@ -33,11 +33,10 @@ class VirusTotalScanner:
         else:
             return False
 
-    '''
-    This method will return 0 if the URL is marked safe by everyone.
-    If even one source reports it as malicious, the full result dictionary will be returned.
-    '''
     def getUrlReport(self, url, scan = 0):
+        '''This method will return 0 if the URL is marked safe by everyone.
+        If even one source reports it as malicious, the full result dictionary will be returned.
+        '''
         result = 0
         payload = {'apikey' : self.key,
                    'resource' : url,
@@ -68,11 +67,10 @@ class VirusTotalScanner:
                         result.append(str(engine) + ' - ' + str(response['scans'][engine]['result']))
         return result
 
-    '''
-    This method returns the link where the report can later be consumed.
-    Alternatively we can use the api again later to query for the malicious URL
-    '''
     def submitURL(self, url):
+        '''This method returns the link where the report can later be consumed.
+        Alternatively we can use the api again later to query for the malicious URL
+        '''        
         payload = {'apikey' : self.api,
                    'resource' : url}
         response = requests.get(url=self.url+'/url/scan', params = payload)
@@ -80,16 +78,20 @@ class VirusTotalScanner:
             print(response.json()['verbose_msg'])
             return response.json(['permalink'])
 
-    '''
-    This method takes in a IPv4 address and returns two lists.
-    The first shows malicious hostnames associated with the IP address, and has the format:
-    [element i] = "Resolved: [URL associated with IP address]
-                   detected by [some fraction] of engines"
-    The second contains hashes for malicious files that have previously been correlated with the IP address.
-    [element i] = "Associated file: [sha256 hash]
-                   detected by [some fraction] of engines"
-    '''
+    
     def getIPReport(self, ip_address):
+        '''This method takes in a IPv4 address and returns two lists.
+        The first shows malicious hostnames associated with the IP address, and has the format:
+        ```python
+        [element i] = "Resolved: [URL associated with IP address]
+                    detected by [some fraction] of engines"
+        ```
+        The second contains hashes for malicious files that have previously been correlated with the IP address.
+        ```python
+        [element i] = "Associated file: [sha256 hash]
+                    detected by [some fraction] of engines"
+        ```
+        '''
         result = 0
         malicious_files = 0
         payload = {'ip' : ip_address,
