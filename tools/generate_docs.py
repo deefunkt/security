@@ -25,19 +25,6 @@ not_include = [
 for names in not_include:
     files.pop(files.index(names))
 
-for names in files:
-    modname = names.strip('.py')
-    class_inspection = inspect.getmembers(
-        getattr(sys.modules[__name__], modname), 
-        inspect.isclass)
-    for class_name, class_type in class_inspection:
-        if f'{modname}.' in str(class_type):
-            print(f'Custom class of {modname}: {class_name}')
-            for attribute, type in inspect.getmembers(class_type):
-                if attribute == '__doc__':
-                    print(type)
-            # print(f'Doc: {}')
-
 with open('README.md', 'w+') as readme:
     readme.write('# ' + HEADING)
     readme.write('\n\n')

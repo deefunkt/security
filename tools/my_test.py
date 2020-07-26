@@ -15,6 +15,8 @@ try:
     debugger.bp_set(wprintf_address)
     debugger.run()
 
+except Exception as e:
+    print(e.message)
 finally:
     debugger.detach()
 

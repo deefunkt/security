@@ -71,7 +71,7 @@ class VirusTotalScanner:
         '''This method returns the link where the report can later be consumed.
         Alternatively we can use the api again later to query for the malicious URL
         '''        
-        payload = {'apikey' : self.api,
+        payload = {'apikey' : self.key,
                    'resource' : url}
         response = requests.get(url=self.url+'/url/scan', params = payload)
         if not self.isError(response.status_code):

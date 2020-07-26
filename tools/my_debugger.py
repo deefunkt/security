@@ -12,7 +12,8 @@ class debugger():
     '''Primarily a usermode debugger written to be used on Windows operating systems, 
     for Windows processes. 
     It is a customized implementation of the python debugger pydbg, originally 
-    written by pedramamini, as shown in "Grey Hat Python". 
+    written by pedramamini, as shown in "Grey Hat Python". Uses ctypes to interact with
+    the windows API in a C compatible way.
     Modified to be more properly object oriented than the original code, 
     and written to be compatible with Python 3 on 64 bit systems.
     '''
@@ -147,6 +148,7 @@ class debugger():
                     print('Access violation exception')
                 elif self.exception == EXCEPTION_BREAKPOINT:
                     continue_status = self.exception_handler_breakpoint()
+                    print('Breakpoint exception. remove this debug message')
                 elif self.exception == EXCEPTION_GUARD_PAGE:
                     # memory breakpoints
                     print('Guard page access exception')
@@ -162,6 +164,10 @@ class debugger():
         '''
         print('[*] Inside the breakpoint handler')
         print('Exception Address: ', self.exception_address)
+        if self.exception_address in self.breakpoints:
+            self.write_process_memory(
+                self.exception_address, self.breakpoints[self.exception_address])
+            self.context.Rip = self.exception_address
         return DBG_CONTINUE
 
     def exception_handler_single_step(self):
@@ -325,11 +331,11 @@ class debugger():
             c_char_p, 
             c_size_t, 
             c_void_p]
-        if not kernel32.ReadProcessMemory(self.h_process,
+        if kernel32.ReadProcessMemory(self.h_process,
                                             address,
                                             read_buffer,
                                             length,
-                                            byref(count)):
+                                            byref(count)) == 0:
             print(f'Error reading memory address {address}: {self.print_system_error()}')
             return False
         else:
@@ -337,7 +343,7 @@ class debugger():
             return data
     
     def write_process_memory(self, address, data):
-        '''Writes a process' memory with specified data.
+        '''Writes a process' memory with specified byte data.
         '''
         count = c_ulong(0)
         length = len(data)
@@ -348,11 +354,11 @@ class debugger():
             c_char_p, 
             c_size_t, 
             c_void_p]
-        if not kernel32.WriteProcessMemory(self.h_process,
+        if kernel32.WriteProcessMemory(self.h_process,
                                             address,
                                             c_data,
                                             length,
-                                            byref(count)):
+                                            byref(count)) == 0:
             print(f'Error writing to memory address {address}: {self.print_system_error()}')
             return False
         else:
@@ -369,7 +375,7 @@ class debugger():
         handle = kernel32.GetModuleHandleW(dll)
         address = kernel32.GetProcAddress(handle, function.encode(encoding='ascii'))
         if address == 0:
-            self.print_system_error()
+            print(f'Error resolving {function} address: {self.print_system_error()}')
         self.release_handle(handle)
         return address
 
@@ -380,9 +386,10 @@ class debugger():
             try:
                 # store original instruction byte and write INT3 opcode
                 original_byte = self.read_process_memory(address, 1)
-                self.write_process_memory(address, '\xCC')
+                self.write_process_memory(address, b'\xCC')
                 # register the breakpoint in internal list
                 self.breakpoints[address] = (address, original_byte)
+                print(f'Set soft breakpoint at {address}')
             except:
                 print(f'Error setting breakpoint at address {address}')
                 return False
